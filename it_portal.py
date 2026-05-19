@@ -187,8 +187,8 @@ def it_users_add():
         except ValueError:
             max_devices = default_max
 
-        # VLAN: Boss → 20, Employee → 10 (fallback)
-        vlan = 20 if group == "Boss" else 10
+        # VLAN: đọc từ config, không hardcode
+        vlan = CONFIG["VLAN_MAP"].get(group, 10)
 
         data = db.load_db()
         if uid in data["users"]:
@@ -226,7 +226,7 @@ def it_sync_user(uid):
 
     info = users_txt[uid]
     group = info["group"]
-    vlan = 20 if group == "Boss" else 10
+    vlan = CONFIG["VLAN_MAP"].get(group, 10)
     default_max = CONFIG["DEFAULT_MAX_DEVICES"].get(group, 2)
 
     data = db.load_db()

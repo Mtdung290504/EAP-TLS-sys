@@ -1,280 +1,527 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IT Portal — {% if mode == 'add' %}Thêm User{% else %}{{ uid }}{% endif %}</title>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            font-size: 14px; background: #f5f5f5; color: #111;
-            display: flex; min-height: 100vh;
-        }
-        .sidebar {
-            width: 220px; background: #fff; border-right: 1px solid #ddd;
-            display: flex; flex-direction: column;
-            position: fixed; top: 0; left: 0; bottom: 0;
-        }
-        .sidebar-logo { padding: 20px 16px 16px; border-bottom: 1px solid #eee; }
-        .sidebar-logo strong { font-size: 15px; }
-        .sidebar-logo small { display: block; color: #666; font-size: 12px; margin-top: 2px; }
-        .sidebar nav { padding: 12px 0; flex: 1; }
-        .sidebar nav a {
-            display: block; padding: 9px 16px; color: #333;
-            text-decoration: none; border-left: 3px solid transparent; font-size: 14px;
-        }
-        .sidebar nav a:hover { background: #f5f5f5; }
-        .sidebar nav a.active { border-left-color: #111; font-weight: 600; background: #f0f0f0; }
-        .sidebar-bottom { padding: 12px 16px; border-top: 1px solid #eee; }
-        .sidebar-bottom a { color: #666; text-decoration: none; font-size: 13px; }
-        .sidebar-bottom a:hover { color: #111; }
-        .content { margin-left: 220px; flex: 1; padding: 28px 32px; }
-        h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
-        .breadcrumb { font-size: 12px; color: #888; margin-bottom: 20px; }
-        .breadcrumb a { color: #555; text-decoration: none; }
-        .breadcrumb a:hover { color: #111; }
-        .flash-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 8px 12px; border-radius: 3px; margin-bottom: 16px; font-size: 13px; }
-        .flash-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; padding: 8px 12px; border-radius: 3px; margin-bottom: 16px; font-size: 13px; }
-        /* Info box */
-        .info-box {
-            background: #fff; border: 1px solid #ddd; border-radius: 4px;
-            padding: 16px 18px; margin-bottom: 20px;
-        }
-        .info-box dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; }
-        .info-box dt { font-size: 12px; color: #666; font-weight: 500; align-self: center; }
-        .info-box dd { font-size: 14px; }
-        /* Table */
-        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 24px; }
-        .section-header h2 { font-size: 15px; font-weight: 600; }
-        table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
-        thead th { background: #f0f0f0; padding: 9px 12px; text-align: left; font-size: 13px; font-weight: 600; border-bottom: 1px solid #ddd; }
-        tbody td { padding: 9px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-        tbody tr:last-child td { border-bottom: none; }
-        tbody tr:hover { background: #fafafa; }
-        .empty { text-align: center; color: #888; padding: 24px; font-size: 13px; }
-        .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-        .badge-active { background: #dcfce7; color: #166534; }
-        .badge-revoked { background: #fee2e2; color: #991b1b; }
-        /* Forms */
-        .form-card { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 20px 22px; margin-top: 24px; }
-        .form-card h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
-        label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
-        input[type="text"], select {
-            width: 100%; padding: 8px 10px; border: 1px solid #ccc;
-            border-radius: 3px; font-size: 14px; margin-bottom: 14px; outline: none;
-        }
-        input:focus, select:focus { border-color: #555; }
-        .form-row { display: flex; gap: 10px; align-items: flex-start; }
-        .form-row input, .form-row select { margin-bottom: 0; }
-        .btn { padding: 7px 16px; background: #111; color: #fff; border: none; border-radius: 3px; font-size: 13px; cursor: pointer; }
-        .btn:hover { background: #333; }
-        .btn-danger { background: #dc2626; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-danger:disabled { background: #ccc; cursor: not-allowed; }
-        .form-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
-        /* Add user mode */
-        .form-group { margin-bottom: 14px; }
-        .hint { font-size: 12px; color: #888; margin-top: 3px; }
-    </style>
-    {% if mode == 'add' %}
-    <script>
-        const usersData = {{ available | tojson }};
-        const defaultMax = {{ default_max_devices | tojson }};
-        function onUIDChange(select) {
-            const uid = select.value;
-            if (!uid || !usersData[uid]) return;
-            const u = usersData[uid];
-            document.getElementById('cn_display').textContent = u.cn;
-            document.getElementById('email_display').textContent = u.email;
-            document.getElementById('group_display').textContent = u.group;
-            const maxInput = document.getElementById('max_devices');
-            maxInput.value = defaultMax[u.group] || 2;
-        }
-    </script>
-    {% endif %}
-</head>
-<body>
-    <aside class="sidebar">
-        <div class="sidebar-logo">
-            <strong>IT Portal</strong>
-            <small>EAP-TLS Cert Mgmt</small>
-        </div>
-        <nav>
-            <a href="{{ url_for('it_dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('it_users_add') }}" {% if mode == 'add' %}class="active"{% endif %}>Thêm User</a>
-            <a href="{{ url_for('it_requests') }}">Yêu cầu</a>
-        </nav>
-        <div class="sidebar-bottom">
-            <a href="{{ url_for('it_logout') }}">Đăng xuất</a>
-        </div>
-    </aside>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>IT Portal — {% if mode == 'add' %}Thêm User{% else %}{{ uid }}{% endif %}</title>
+		<style>
+			*,
+			*::before,
+			*::after {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+				font-size: 14px;
+				background: #f5f5f5;
+				color: #111;
+				display: flex;
+				min-height: 100vh;
+			}
+			.sidebar {
+				width: 220px;
+				background: #fff;
+				border-right: 1px solid #ddd;
+				display: flex;
+				flex-direction: column;
+				position: fixed;
+				top: 0;
+				left: 0;
+				bottom: 0;
+			}
+			.sidebar-logo {
+				padding: 20px 16px 16px;
+				border-bottom: 1px solid #eee;
+			}
+			.sidebar-logo strong {
+				font-size: 15px;
+			}
+			.sidebar-logo small {
+				display: block;
+				color: #666;
+				font-size: 12px;
+				margin-top: 2px;
+			}
+			.sidebar nav {
+				padding: 12px 0;
+				flex: 1;
+			}
+			.sidebar nav a {
+				display: block;
+				padding: 9px 16px;
+				color: #333;
+				text-decoration: none;
+				border-left: 3px solid transparent;
+				font-size: 14px;
+			}
+			.sidebar nav a:hover {
+				background: #f5f5f5;
+			}
+			.sidebar nav a.active {
+				border-left-color: #111;
+				font-weight: 600;
+				background: #f0f0f0;
+			}
+			.sidebar-bottom {
+				padding: 12px 16px;
+				border-top: 1px solid #eee;
+			}
+			.sidebar-bottom a {
+				color: #666;
+				text-decoration: none;
+				font-size: 13px;
+			}
+			.sidebar-bottom a:hover {
+				color: #111;
+			}
+			.content {
+				margin-left: 220px;
+				flex: 1;
+				padding: 28px 32px;
+			}
+			h1 {
+				font-size: 20px;
+				font-weight: 600;
+				margin-bottom: 4px;
+			}
+			.breadcrumb {
+				font-size: 12px;
+				color: #888;
+				margin-bottom: 20px;
+			}
+			.breadcrumb a {
+				color: #555;
+				text-decoration: none;
+			}
+			.breadcrumb a:hover {
+				color: #111;
+			}
+			.flash-success {
+				background: #f0fdf4;
+				border: 1px solid #86efac;
+				color: #166534;
+				padding: 8px 12px;
+				border-radius: 3px;
+				margin-bottom: 16px;
+				font-size: 13px;
+			}
+			.flash-error {
+				background: #fef2f2;
+				border: 1px solid #fca5a5;
+				color: #b91c1c;
+				padding: 8px 12px;
+				border-radius: 3px;
+				margin-bottom: 16px;
+				font-size: 13px;
+			}
+			/* Info box */
+			.info-box {
+				background: #fff;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				padding: 16px 18px;
+				margin-bottom: 20px;
+			}
+			.info-box dl {
+				display: grid;
+				grid-template-columns: 140px 1fr;
+				gap: 6px 12px;
+			}
+			.info-box dt {
+				font-size: 12px;
+				color: #666;
+				font-weight: 500;
+				align-self: center;
+			}
+			.info-box dd {
+				font-size: 14px;
+			}
+			/* Table */
+			.section-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 10px;
+				margin-top: 24px;
+			}
+			.section-header h2 {
+				font-size: 15px;
+				font-weight: 600;
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				background: #fff;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				overflow: hidden;
+			}
+			thead th {
+				background: #f0f0f0;
+				padding: 9px 12px;
+				text-align: left;
+				font-size: 13px;
+				font-weight: 600;
+				border-bottom: 1px solid #ddd;
+			}
+			tbody td {
+				padding: 9px 12px;
+				border-bottom: 1px solid #eee;
+				font-size: 13px;
+			}
+			tbody tr:last-child td {
+				border-bottom: none;
+			}
+			tbody tr:hover {
+				background: #fafafa;
+			}
+			.empty {
+				text-align: center;
+				color: #888;
+				padding: 24px;
+				font-size: 13px;
+			}
+			.badge {
+				display: inline-block;
+				padding: 2px 7px;
+				border-radius: 10px;
+				font-size: 11px;
+				font-weight: 600;
+			}
+			.badge-active {
+				background: #dcfce7;
+				color: #166534;
+			}
+			.badge-revoked {
+				background: #fee2e2;
+				color: #991b1b;
+			}
+			/* Forms */
+			.form-card {
+				background: #fff;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				padding: 20px 22px;
+				margin-top: 24px;
+			}
+			.form-card h2 {
+				font-size: 15px;
+				font-weight: 600;
+				margin-bottom: 14px;
+			}
+			label {
+				display: block;
+				font-size: 13px;
+				font-weight: 500;
+				margin-bottom: 4px;
+			}
+			input[type='text'],
+			select {
+				width: 100%;
+				padding: 8px 10px;
+				border: 1px solid #ccc;
+				border-radius: 3px;
+				font-size: 14px;
+				margin-bottom: 14px;
+				outline: none;
+			}
+			input:focus,
+			select:focus {
+				border-color: #555;
+			}
+			.form-row {
+				display: flex;
+				gap: 10px;
+				align-items: flex-start;
+			}
+			.form-row input,
+			.form-row select {
+				margin-bottom: 0;
+			}
+			.btn {
+				padding: 7px 16px;
+				background: #111;
+				color: #fff;
+				border: none;
+				border-radius: 3px;
+				font-size: 13px;
+				cursor: pointer;
+			}
+			.btn:hover {
+				background: #333;
+			}
+			.btn-danger {
+				background: #dc2626;
+			}
+			.btn-danger:hover {
+				background: #b91c1c;
+			}
+			.btn-danger:disabled {
+				background: #ccc;
+				cursor: not-allowed;
+			}
+			.form-footer {
+				display: flex;
+				justify-content: flex-end;
+				gap: 10px;
+				margin-top: 8px;
+			}
+			/* Add user mode */
+			.form-group {
+				margin-bottom: 14px;
+			}
+			.hint {
+				font-size: 12px;
+				color: #888;
+				margin-top: 3px;
+			}
+		</style>
+		{% if mode == 'add' %}
+		<script>
+			const usersData = {{ available | tojson }};
+			const defaultMax = {{ default_max_devices | tojson }};
+			function onUIDChange(select) {
+			    const uid = select.value;
+			    if (!uid || !usersData[uid]) return;
+			    const u = usersData[uid];
+			    document.getElementById('cn_display').textContent = u.cn;
+			    document.getElementById('email_display').textContent = u.email;
+			    document.getElementById('group_display').textContent = u.group;
+			    const maxInput = document.getElementById('max_devices');
+			    maxInput.value = defaultMax[u.group] || 2;
+			}
+		</script>
+		{% endif %}
+	</head>
+	<body>
+		<aside class="sidebar">
+			<div class="sidebar-logo">
+				<strong>IT Portal</strong>
+				<small>EAP-TLS Cert Mgmt</small>
+			</div>
+			<nav>
+				<a href="{{ url_for('it_dashboard') }}">Dashboard</a>
+				<a href="{{ url_for('it_users_add') }}" {% if mode="" ="add" %}class="active" {% endif %}>Thêm User</a>
+				<a href="{{ url_for('it_requests') }}">Yêu cầu</a>
+			</nav>
+			<div class="sidebar-bottom">
+				<a href="{{ url_for('it_logout') }}">Đăng xuất</a>
+			</div>
+		</aside>
 
-    <main class="content">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for cat, msg in messages %}
-        <div class="flash-{{ cat }}">{{ msg }}</div>
-        {% endfor %}
-        {% endwith %}
+		<main class="content">
+			{% with messages = get_flashed_messages(with_categories=true) %} {% for cat, msg in messages %}
+			<div class="flash-{{ cat }}">{{ msg }}</div>
+			{% endfor %} {% endwith %} {% if mode == 'add' %}
+			<!-- ── ADD USER MODE ── -->
+			<h1>Thêm User</h1>
+			<p class="breadcrumb"><a href="{{ url_for('it_dashboard') }}">Dashboard</a> › Thêm User</p>
 
-        {% if mode == 'add' %}
-        <!-- ── ADD USER MODE ── -->
-        <h1>Thêm User</h1>
-        <p class="breadcrumb"><a href="{{ url_for('it_dashboard') }}">Dashboard</a> › Thêm User</p>
+			<div class="form-card">
+				<h2>Chọn nhân viên</h2>
+				<form method="post" action="{{ url_for('it_users_add') }}">
+					<div class="form-group">
+						<label for="uid">Nhân viên (UID)</label>
+						<select id="uid" name="uid" onchange="onUIDChange(this)">
+							<option value="">— Chọn UID —</option>
+							{% for uid_opt, info in available.items() %}
+							<option value="{{ uid_opt }}">{{ uid_opt }} — {{ info.cn }}</option>
+							{% endfor %}
+						</select>
+						{% if not available %}
+						<p class="hint">Tất cả nhân viên trong users.txt đã có tài khoản.</p>
+						{% endif %}
+					</div>
+					<div class="form-group">
+						<label>Họ tên</label>
+						<div id="cn_display" style="padding: 8px 0; color: #444">—</div>
+					</div>
+					<div class="form-group">
+						<label>Email</label>
+						<div id="email_display" style="padding: 8px 0; color: #444">—</div>
+					</div>
+					<div class="form-group">
+						<label>Nhóm</label>
+						<div id="group_display" style="padding: 8px 0; color: #444">—</div>
+					</div>
+					<div class="form-group">
+						<label for="max_devices">Giới hạn thiết bị</label>
+						<input type="text" id="max_devices" name="max_devices" value="2" style="width: 80px" />
+					</div>
+					<div class="form-footer">
+						<a href="{{ url_for('it_dashboard') }}" class="btn" style="background: #666">Hủy</a>
+						<button type="submit" class="btn" {% if not available %}disabled{% endif %}>Thêm</button>
+					</div>
+				</form>
+			</div>
 
-        <div class="form-card">
-            <h2>Chọn nhân viên</h2>
-            <form method="post" action="{{ url_for('it_users_add') }}">
-                <div class="form-group">
-                    <label for="uid">Nhân viên (UID)</label>
-                    <select id="uid" name="uid" onchange="onUIDChange(this)">
-                        <option value="">— Chọn UID —</option>
-                        {% for uid_opt, info in available.items() %}
-                        <option value="{{ uid_opt }}">{{ uid_opt }} — {{ info.cn }}</option>
-                        {% endfor %}
-                    </select>
-                    {% if not available %}
-                    <p class="hint">Tất cả nhân viên trong users.txt đã có tài khoản.</p>
-                    {% endif %}
-                </div>
-                <div class="form-group">
-                    <label>Họ tên</label>
-                    <div id="cn_display" style="padding:8px 0;color:#444;">—</div>
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <div id="email_display" style="padding:8px 0;color:#444;">—</div>
-                </div>
-                <div class="form-group">
-                    <label>Nhóm</label>
-                    <div id="group_display" style="padding:8px 0;color:#444;">—</div>
-                </div>
-                <div class="form-group">
-                    <label for="max_devices">Giới hạn thiết bị</label>
-                    <input type="text" id="max_devices" name="max_devices" value="2" style="width:80px;">
-                </div>
-                <div class="form-footer">
-                    <a href="{{ url_for('it_dashboard') }}" class="btn" style="background:#666;">Hủy</a>
-                    <button type="submit" class="btn" {% if not available %}disabled{% endif %}>Thêm</button>
-                </div>
-            </form>
-        </div>
+			{% else %}
+			<!-- ── DETAIL MODE ── -->
+			<h1>{{ uid }}</h1>
+			<p class="breadcrumb"><a href="{{ url_for('it_dashboard') }}">Dashboard</a> › {{ uid }}</p>
 
-        {% else %}
-        <!-- ── DETAIL MODE ── -->
-        <h1>{{ uid }}</h1>
-        <p class="breadcrumb"><a href="{{ url_for('it_dashboard') }}">Dashboard</a> › {{ uid }}</p>
+			<div class="info-box">
+				<dl>
+					<dt>Họ tên</dt>
+					<dd>{{ user.cn }}</dd>
+					<dt>Email</dt>
+					<dd>{{ user.email }}</dd>
+					<dt>Nhóm</dt>
+					<dd>{{ user.group }}</dd>
+					<dt>VLAN</dt>
+					<dd>{{ user.vlan }}</dd>
+					<dt>Giới hạn thiết bị</dt>
+					<dd>{{ user.max_devices }}</dd>
+					<dt>Ngày tạo</dt>
+					<dd>{{ user.created_at }}</dd>
+				</dl>
+			</div>
 
-        <div class="info-box">
-            <dl>
-                <dt>Họ tên</dt><dd>{{ user.cn }}</dd>
-                <dt>Email</dt><dd>{{ user.email }}</dd>
-                <dt>Nhóm</dt><dd>{{ user.group }}</dd>
-                <dt>VLAN</dt><dd>{{ user.vlan }}</dd>
-                <dt>Giới hạn thiết bị</dt><dd>{{ user.max_devices }}</dd>
-                <dt>Ngày tạo</dt><dd>{{ user.created_at }}</dd>
-            </dl>
-        </div>
+			{% if sync_needed %}
+			<div
+				style="
+					background: #fefce8;
+					border: 1px solid #fde047;
+					border-radius: 4px;
+					padding: 10px 14px;
+					margin-bottom: 16px;
+					font-size: 13px;
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					gap: 12px;
+				"
+			>
+				<span>
+					⚠️ <strong>users.txt có thay đổi:</strong> nhóm <strong>{{ txt_info.get('group','?') }}</strong>,
+					VLAN <strong>{{ '30' if txt_info.get('group')=='Boss' else '10' }}</strong>
+					— chưa cập nhật vào hệ thống.
+				</span>
+				<form method="post" action="{{ url_for('it_sync_user', uid=uid) }}" style="flex-shrink: 0">
+					<button type="submit" class="btn" style="background: #854d0e; font-size: 12px; padding: 5px 12px">
+						Sync từ users.txt
+					</button>
+				</form>
+			</div>
+			{% endif %}
 
-        {% if sync_needed %}
-        <div style="background:#fefce8;border:1px solid #fde047;border-radius:4px;padding:10px 14px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <span>
-                ⚠️ <strong>users.txt có thay đổi:</strong>
-                nhóm <strong>{{ txt_info.get('group','?') }}</strong>,
-                VLAN <strong>{{ '20' if txt_info.get('group')=='Boss' else '10' }}</strong>
-                — chưa cập nhật vào hệ thống.
-            </span>
-            <form method="post" action="{{ url_for('it_sync_user', uid=uid) }}" style="flex-shrink:0;">
-                <button type="submit" class="btn" style="background:#854d0e;font-size:12px;padding:5px 12px;">
-                    Sync từ users.txt
-                </button>
-            </form>
-        </div>
-        {% endif %}
+			<div class="section-header">
+				<h2>Thiết bị</h2>
+			</div>
+			<table id="device-table">
+				<thead>
+					<tr>
+						<th>Tên thiết bị</th>
+						<th>Trạng thái</th>
+						<th>Serial</th>
+						<th>Ngày cấp</th>
+						<th>Hết hạn</th>
+						<th>Còn lại</th>
+						<th>Thao tác</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% if device_rows %} {% for dev in device_rows %}
+					<tr>
+						<td>{{ dev.name }}</td>
+						<td>
+							<span class="badge badge-{{ dev.status }}">{{ dev.status }}</span>
+						</td>
+						<td>{{ dev.serial or '—' }}</td>
+						<td>{{ dev.issued or '—' }}</td>
+						<td>{{ dev.expires or '—' }}</td>
+						<td>
+							{% if dev.days_left is not none and dev.status == 'active' %} {{ dev.days_left }} ngày {%
+							else %}—{% endif %}
+						</td>
+						<td>
+							{% if dev.status == 'active' %}
+							<form
+								method="post"
+								action="{{ url_for('it_revoke_device', uid=uid) }}"
+								style="display: inline"
+								onsubmit="return confirm('Thu hồi cert của {{ dev.name }}?')"
+							>
+								<input type="hidden" name="device_name" value="{{ dev.name }}" />
+								<input type="hidden" name="reason" value="cessationOfOperation" />
+								<button type="submit" class="btn btn-danger" style="font-size: 12px; padding: 4px 10px">
+									Thu hồi
+								</button>
+							</form>
+							{% else %}—{% endif %}
+						</td>
+					</tr>
+					{% endfor %} {% else %}
+					<tr>
+						<td colspan="7" class="empty">Chưa có thiết bị nào.</td>
+					</tr>
+					{% endif %}
+				</tbody>
+			</table>
 
-        <div class="section-header">
-            <h2>Thiết bị</h2>
-        </div>
-        <table id="device-table">
-            <thead>
-                <tr>
-                    <th>Tên thiết bị</th>
-                    <th>Trạng thái</th>
-                    <th>Serial</th>
-                    <th>Ngày cấp</th>
-                    <th>Hết hạn</th>
-                    <th>Còn lại</th>
-                    <th>Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if device_rows %}
-                {% for dev in device_rows %}
-                <tr>
-                    <td>{{ dev.name }}</td>
-                    <td>
-                        <span class="badge badge-{{ dev.status }}">{{ dev.status }}</span>
-                    </td>
-                    <td>{{ dev.serial or '—' }}</td>
-                    <td>{{ dev.issued or '—' }}</td>
-                    <td>{{ dev.expires or '—' }}</td>
-                    <td>
-                        {% if dev.days_left is not none and dev.status == 'active' %}
-                            {{ dev.days_left }} ngày
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if dev.status == 'active' %}
-                        <form method="post" action="{{ url_for('it_revoke_device', uid=uid) }}" style="display:inline;" onsubmit="return confirm('Thu hồi cert của {{ dev.name }}?')">
-                            <input type="hidden" name="device_name" value="{{ dev.name }}">
-                            <input type="hidden" name="reason" value="cessationOfOperation">
-                            <button type="submit" class="btn btn-danger" style="font-size:12px;padding:4px 10px;">Thu hồi</button>
-                        </form>
-                        {% else %}—{% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-                {% else %}
-                <tr><td colspan="7" class="empty">Chưa có thiết bị nào.</td></tr>
-                {% endif %}
-            </tbody>
-        </table>
+			<!-- Add device form -->
+			<div class="form-card">
+				<h2>Thêm thiết bị (cấp cert)</h2>
+				<form method="post" action="{{ url_for('it_add_device', uid=uid) }}">
+					<div class="form-row">
+						<div style="flex: 1">
+							<label for="device_name">Tên thiết bị</label>
+							<input
+								type="text"
+								id="device_name"
+								name="device_name"
+								placeholder="vd: laptop, phone, tablet"
+								style="margin-bottom: 0"
+							/>
+						</div>
+						<div style="padding-top: 22px">
+							<button type="submit" class="btn" {% if active_count>
+								= user.max_devices %}disabled title="Đã đạt giới hạn"{% endif %}>Cấp cert
+							</button>
+						</div>
+					</div>
+					{% if active_count >= user.max_devices %}
+					<p class="hint" style="color: #b91c1c">Đã đạt giới hạn {{ user.max_devices }} thiết bị active.</p>
+					{% endif %}
+				</form>
+			</div>
 
-        <!-- Add device form -->
-        <div class="form-card">
-            <h2>Thêm thiết bị (cấp cert)</h2>
-            <form method="post" action="{{ url_for('it_add_device', uid=uid) }}">
-                <div class="form-row">
-                    <div style="flex:1;">
-                        <label for="device_name">Tên thiết bị</label>
-                        <input type="text" id="device_name" name="device_name" placeholder="vd: laptop, phone, tablet" style="margin-bottom:0;">
-                    </div>
-                    <div style="padding-top:22px;">
-                        <button type="submit" class="btn" {% if active_count >= user.max_devices %}disabled title="Đã đạt giới hạn"{% endif %}>Cấp cert</button>
-                    </div>
-                </div>
-                {% if active_count >= user.max_devices %}
-                <p class="hint" style="color:#b91c1c;">Đã đạt giới hạn {{ user.max_devices }} thiết bị active.</p>
-                {% endif %}
-            </form>
-        </div>
+			<!-- Delete user -->
+			<div class="form-card" style="border-color: #fca5a5">
+				<h2 style="color: #b91c1c">Vùng nguy hiểm</h2>
+				<form
+					method="post"
+					action="{{ url_for('it_delete_user', uid=uid) }}"
+					onsubmit="return confirm('Xóa user {{ uid }}? Thao tác này không thể hoàn tác.')"
+				>
+					<div class="form-footer" style="justify-content: flex-start; margin-top: 0">
+						<button
+							type="submit"
+							class="btn btn-danger"
+							{%
+							if
+							not
+							can_delete
+							%}disabled
+							title="Còn {{ active_count }} thiết bị active"
+							{%
+							endif
+							%}
+						>
+							Xóa user {{ uid }}
+						</button>
+						{% if not can_delete %}
+						<span style="font-size: 12px; color: #888; align-self: center"
+							>Vô hiệu hóa tất cả thiết bị trước khi xóa.</span
+						>
+						{% endif %}
+					</div>
+				</form>
+			</div>
 
-        <!-- Delete user -->
-        <div class="form-card" style="border-color:#fca5a5;">
-            <h2 style="color:#b91c1c;">Vùng nguy hiểm</h2>
-            <form method="post" action="{{ url_for('it_delete_user', uid=uid) }}" onsubmit="return confirm('Xóa user {{ uid }}? Thao tác này không thể hoàn tác.')">
-                <div class="form-footer" style="justify-content:flex-start;margin-top:0;">
-                    <button type="submit" class="btn btn-danger" {% if not can_delete %}disabled title="Còn {{ active_count }} thiết bị active"{% endif %}>
-                        Xóa user {{ uid }}
-                    </button>
-                    {% if not can_delete %}
-                    <span style="font-size:12px;color:#888;align-self:center;">Vô hiệu hóa tất cả thiết bị trước khi xóa.</span>
-                    {% endif %}
-                </div>
-            </form>
-        </div>
-
-        {% endif %}
-    </main>
-</body>
+			{% endif %}
+		</main>
+	</body>
 </html>

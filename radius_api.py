@@ -21,13 +21,12 @@ def vlan():
     if not uid_param:
         return Response("Missing uid parameter", status=400, mimetype="text/plain")
 
-    # CN format: userID_deviceName
+    # CN format: userID_deviceName — tách tại dấu _ ĐẦU TIÊN
+    # (UID không có _, device name có thể có)
     if "_" not in uid_param:
         return Response("Invalid uid format, expected userID_deviceName", status=400, mimetype="text/plain")
 
-    # Tách từ phải để hỗ trợ userID có dấu _
-    parts = uid_param.rsplit("_", 1)
-    user_id, device_name = parts[0], parts[1]
+    user_id, device_name = uid_param.split("_", 1)
 
     user = db.get_user(user_id)
     if user is None:

@@ -1,0 +1,3 @@
+# Jinja2 templates — Prettier không hiểu cú pháp {% %} {{ }}
+templates/
+*.html

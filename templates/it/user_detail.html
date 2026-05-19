@@ -477,9 +477,7 @@
 							/>
 						</div>
 						<div style="padding-top: 22px">
-							<button type="submit" class="btn" {% if active_count>
-								= user.max_devices %}disabled title="Đã đạt giới hạn"{% endif %}>Cấp cert
-							</button>
+							<button type="submit" class="btn" {% if active_count >= user.max_devices %}disabled title="Đã đạt giới hạn"{% endif %}>Cấp cert</button>
 						</div>
 					</div>
 					{% if active_count >= user.max_devices %}
@@ -497,25 +495,11 @@
 					onsubmit="return confirm('Xóa user {{ uid }}? Thao tác này không thể hoàn tác.')"
 				>
 					<div class="form-footer" style="justify-content: flex-start; margin-top: 0">
-						<button
-							type="submit"
-							class="btn btn-danger"
-							{%
-							if
-							not
-							can_delete
-							%}disabled
-							title="Còn {{ active_count }} thiết bị active"
-							{%
-							endif
-							%}
-						>
+						<button type="submit" class="btn btn-danger" {% if not can_delete %}disabled title="Còn {{ active_count }} thiết bị active"{% endif %}>
 							Xóa user {{ uid }}
 						</button>
 						{% if not can_delete %}
-						<span style="font-size: 12px; color: #888; align-self: center"
-							>Vô hiệu hóa tất cả thiết bị trước khi xóa.</span
-						>
+						<span style="font-size: 12px; color: #888; align-self: center">Vô hiệu hóa tất cả thiết bị trước khi xóa.</span>
 						{% endif %}
 					</div>
 				</form>

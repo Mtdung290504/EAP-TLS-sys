@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Portal — Yêu cầu thiết bị mới</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 14px; background: #f5f5f5; color: #111; min-height: 100vh;
+        }
+        header {
+            background: #fff; border-bottom: 1px solid #ddd;
+            padding: 12px 32px; display: flex; align-items: center; justify-content: space-between;
+        }
+        header strong { font-size: 15px; }
+        header .user-info { font-size: 13px; color: #555; display: flex; align-items: center; gap: 14px; }
+        header .user-info a { color: #555; text-decoration: none; }
+        header .user-info a:hover { color: #111; }
+        .container { max-width: 500px; margin: 40px auto; padding: 0 16px; }
+        h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .breadcrumb { font-size: 12px; color: #888; margin-bottom: 24px; }
+        .breadcrumb a { color: #555; text-decoration: none; }
+        .breadcrumb a:hover { color: #111; }
+        .flash-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; padding: 8px 12px; border-radius: 3px; margin-bottom: 16px; font-size: 13px; }
+        .form-card {
+            background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 24px 22px;
+        }
+        label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+        input[type="text"] {
+            width: 100%; padding: 8px 10px; border: 1px solid #ccc;
+            border-radius: 3px; font-size: 14px; margin-bottom: 8px; outline: none;
+        }
+        input:focus { border-color: #555; }
+        .hint { font-size: 12px; color: #888; margin-bottom: 18px; }
+        .form-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+        .btn { padding: 7px 18px; background: #111; color: #fff; border: none; border-radius: 3px; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn:hover { background: #333; }
+        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; }
+        .btn-outline:hover { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <header>
+        <strong>Employee Portal — EAP-TLS</strong>
+        <div class="user-info">
+            <span>{{ user.cn }} ({{ uid }})</span>
+            <a href="{{ url_for('auth_logout') }}">Đăng xuất</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Yêu cầu thiết bị mới</h1>
+        <p class="breadcrumb"><a href="{{ url_for('employee_dashboard') }}">Dashboard</a> › Yêu cầu mới</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <div class="form-card">
+            <form method="post" action="{{ url_for('employee_request') }}">
+                <label for="device_name">Tên thiết bị</label>
+                <input type="text" id="device_name" name="device_name"
+                       placeholder="Ví dụ: laptop, phone, tablet" autofocus>
+                <p class="hint">Tên thiết bị không phân biệt hoa/thường. Không dùng ký tự đặc biệt.</p>
+                <div class="form-footer">
+                    <a href="{{ url_for('employee_dashboard') }}" class="btn btn-outline">Hủy</a>
+                    <button type="submit" class="btn">Gửi yêu cầu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

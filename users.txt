@@ -1,0 +1,5 @@
+# UserID,Group,CommonName,Country,State,City,Org,OrgUnit,Email
+22NS007,Employee,Mai Tien Dung,VN,Da Nang,Da Nang City,VKU-ATMKD,Student,dungmt.22ns@vku.udn.vn
+22NS008,Employee,Nguyen Huu Dung,VN,Da Nang,Da Nang City,VKU-ATMKD,Student,dungnh.22ns@vku.udn.vn
+0003,Boss,Hoang Van Em,VN,Da Nang,Da Nang City,VKU-ATMKD,Lecturer,em.hv@gmail.com
+0004,Boss,Vo Thi Phuong,VN,Ha Noi,Ha Noi City,VKU-ATMKD,Lecturer,phuong.vt@gmail.com

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Portal — Dashboard</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 14px;
+            background: #f5f5f5;
+            color: #111;
+            display: flex;
+            min-height: 100vh;
+        }
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background: #fff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+        }
+        .sidebar-logo {
+            padding: 20px 16px 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .sidebar-logo strong { font-size: 15px; }
+        .sidebar-logo small { display: block; color: #666; font-size: 12px; margin-top: 2px; }
+        .sidebar nav { padding: 12px 0; flex: 1; }
+        .sidebar nav a {
+            display: block;
+            padding: 9px 16px;
+            color: #333;
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            font-size: 14px;
+        }
+        .sidebar nav a:hover { background: #f5f5f5; }
+        .sidebar nav a.active { border-left-color: #111; font-weight: 600; background: #f0f0f0; }
+        .sidebar-bottom { padding: 12px 16px; border-top: 1px solid #eee; }
+        .sidebar-bottom a { color: #666; text-decoration: none; font-size: 13px; }
+        .sidebar-bottom a:hover { color: #111; }
+        /* Content */
+        .content {
+            margin-left: 220px;
+            flex: 1;
+            padding: 28px 32px;
+        }
+        h1 { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+        /* Flash */
+        .flash-success {
+            background: #f0fdf4; border: 1px solid #86efac; color: #166534;
+            padding: 8px 12px; border-radius: 3px; margin-bottom: 16px; font-size: 13px;
+        }
+        .flash-error {
+            background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c;
+            padding: 8px 12px; border-radius: 3px; margin-bottom: 16px; font-size: 13px;
+        }
+        /* Stats */
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+        .stat-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px 18px;
+        }
+        .stat-card .label { font-size: 12px; color: #666; margin-bottom: 6px; }
+        .stat-card .value { font-size: 26px; font-weight: 700; }
+        /* Table */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .section-header h2 { font-size: 15px; font-weight: 600; }
+        .btn-sm {
+            padding: 5px 12px;
+            background: #111;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-sm:hover { background: #333; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
+        thead th { background: #f0f0f0; padding: 9px 12px; text-align: left; font-size: 13px; font-weight: 600; border-bottom: 1px solid #ddd; }
+        tbody td { padding: 9px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: #fafafa; }
+        .empty { text-align: center; color: #888; padding: 24px; font-size: 13px; }
+        a.link { color: #111; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <strong>IT Portal</strong>
+            <small>EAP-TLS Cert Mgmt</small>
+        </div>
+        <nav>
+            <a href="{{ url_for('it_dashboard') }}" class="active">Dashboard</a>
+            <a href="{{ url_for('it_users_add') }}">Thêm User</a>
+            <a href="{{ url_for('it_requests') }}">Yêu cầu</a>
+        </nav>
+        <div class="sidebar-bottom">
+            <a href="{{ url_for('it_logout') }}">Đăng xuất</a>
+        </div>
+    </aside>
+
+    <main class="content">
+        <h1>Dashboard</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">Tổng User</div>
+                <div class="value">{{ total_users }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Device Active</div>
+                <div class="value">{{ total_active }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Yêu cầu chờ</div>
+                <div class="value">{{ pending_requests }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Sắp hết hạn</div>
+                <div class="value">{{ expiring_soon }}</div>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>Danh sách User</h2>
+            <a href="{{ url_for('it_users_add') }}" class="btn-sm">+ Thêm User</a>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>UID</th>
+                    <th>Họ tên</th>
+                    <th>Nhóm</th>
+                    <th>VLAN</th>
+                    <th>Device Active</th>
+                    <th>Giới hạn</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if user_rows %}
+                {% for row in user_rows %}
+                <tr>
+                    <td>{{ row.uid }}</td>
+                    <td>{{ row.cn }}</td>
+                    <td>{{ row.group }}</td>
+                    <td>{{ row.vlan }}</td>
+                    <td>{{ row.active_count }}</td>
+                    <td>{{ row.max_devices }}</td>
+                    <td><a class="link" href="{{ url_for('it_user_detail', uid=row.uid) }}">Chi tiết</a></td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr><td colspan="7" class="empty">Chưa có user nào.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </main>
+</body>
+</html>

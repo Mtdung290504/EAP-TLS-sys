@@ -1,0 +1,65 @@
+[ req ]
+default_bits        = 2048
+distinguished_name  = req_distinguished_name
+string_mask         = utf8only
+
+[ req_distinguished_name ]
+countryName                     = Country Name (2 letter code)
+stateOrProvinceName             = State or Province Name (full name)
+localityName                    = Locality Name (eg, city)
+organizationName                = Organization Name (eg, company)
+organizationalUnitName          = Organizational Unit Name (eg, section)
+commonName                      = Common Name (eg, YOUR name)
+emailAddress                    = Email Address
+
+# ── Dùng bởi: openssl ca (revoke + ký CRL) ───────────────────────────────────
+[ ca ]
+default_ca = CA_default
+
+[ CA_default ]
+dir               = .                    # thư mục CA-data/
+certs             = $dir/clients         # cert đã cấp (tham chiếu)
+database          = $dir/index.txt       # DB text — bắt buộc
+new_certs_dir     = $dir/newcerts        # openssl ca lưu bản sao cert vào đây
+certificate       = $dir/ca.crt
+serial            = $dir/ca.srl
+private_key       = $dir/ca.key
+crl_dir           = $dir
+crl               = $dir/crl.pem
+crlnumber         = $dir/crlnumber       # serial của CRL
+default_crl_days  = 30                   # CRL hết hạn sau 30 ngày
+default_days      = 825
+default_md        = sha256
+policy            = policy_match
+preserve          = no
+copy_extensions   = none
+
+[ policy_match ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+# ── Extensions ───────────────────────────────────────────────────────────────
+[ v3_ca ]
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints       = critical, CA:true
+keyUsage               = critical, digitalSignature, cRLSign, keyCertSign
+
+[ v3_server ]
+basicConstraints       = CA:false
+keyUsage               = critical, digitalSignature, keyEncipherment
+extendedKeyUsage       = serverAuth
+subjectAltName         = @alt_names
+
+[ alt_names ]
+DNS.1 = radius.vku
+
+[ v3_client ]
+basicConstraints       = CA:false
+keyUsage               = critical, digitalSignature
+extendedKeyUsage       = clientAuth

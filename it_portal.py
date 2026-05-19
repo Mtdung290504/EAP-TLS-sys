@@ -213,6 +213,41 @@ def it_users_add():
                            default_max_devices=CONFIG["DEFAULT_MAX_DEVICES"])
 
 
+# ── Users — Sync from users.txt ───────────────────────────────────────────────
+
+@app.route("/it/users/<uid>/sync", methods=["POST"])
+@login_required
+def it_sync_user(uid):
+    """Đọc lại users.txt, cập nhật group/vlan/max_devices cho user trong db."""
+    users_txt = parse_users_txt()
+    if uid not in users_txt:
+        flash(f"UID '{uid}' không tìm thấy trong users.txt.", "error")
+        return redirect(url_for("it_user_detail", uid=uid))
+
+    info = users_txt[uid]
+    group = info["group"]
+    vlan = 20 if group == "Boss" else 10
+    default_max = CONFIG["DEFAULT_MAX_DEVICES"].get(group, 2)
+
+    data = db.load_db()
+    if uid not in data["users"]:
+        flash("User không tồn tại trong hệ thống.", "error")
+        return redirect(url_for("it_dashboard"))
+
+    old_group = data["users"][uid].get("group", "")
+    data["users"][uid]["cn"] = info["cn"]
+    data["users"][uid]["email"] = info["email"]
+    data["users"][uid]["group"] = group
+    data["users"][uid]["vlan"] = vlan
+    # Chỉ cập nhật max_devices nếu max hiện tại bằng default của nhóm cũ
+    if data["users"][uid].get("max_devices") == CONFIG["DEFAULT_MAX_DEVICES"].get(old_group, 2):
+        data["users"][uid]["max_devices"] = default_max
+    db.save_db(data)
+
+    flash(f"Đã sync user '{uid}': group={group}, vlan={vlan}, max_devices={data['users'][uid]['max_devices']}.", "success")
+    return redirect(url_for("it_user_detail", uid=uid))
+
+
 # ── Users — Detail ────────────────────────────────────────────────────────────
 
 @app.route("/it/users/<uid>")
@@ -222,6 +257,15 @@ def it_user_detail(uid):
     if user is None:
         abort(404)
     devices = db.get_devices(uid)
+
+    # Kiểm tra users.txt có thông tin khác không
+    users_txt = parse_users_txt()
+    txt_info = users_txt.get(uid, {})
+    sync_needed = (
+        txt_info.get("group") != user.get("group") or
+        txt_info.get("cn") != user.get("cn") or
+        txt_info.get("email") != user.get("email")
+    )
 
     device_rows = []
     for dev_name, dev in devices.items():
@@ -248,6 +292,8 @@ def it_user_detail(uid):
         device_rows=device_rows,
         active_count=active_count,
         can_delete=can_delete,
+        sync_needed=sync_needed,
+        txt_info=txt_info,
     )
 
 

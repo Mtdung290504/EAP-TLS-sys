@@ -176,6 +176,22 @@
             </dl>
         </div>
 
+        {% if sync_needed %}
+        <div style="background:#fefce8;border:1px solid #fde047;border-radius:4px;padding:10px 14px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <span>
+                ⚠️ <strong>users.txt có thay đổi:</strong>
+                nhóm <strong>{{ txt_info.get('group','?') }}</strong>,
+                VLAN <strong>{{ '20' if txt_info.get('group')=='Boss' else '10' }}</strong>
+                — chưa cập nhật vào hệ thống.
+            </span>
+            <form method="post" action="{{ url_for('it_sync_user', uid=uid) }}" style="flex-shrink:0;">
+                <button type="submit" class="btn" style="background:#854d0e;font-size:12px;padding:5px 12px;">
+                    Sync từ users.txt
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
         <div class="section-header">
             <h2>Thiết bị</h2>
         </div>

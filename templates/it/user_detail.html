@@ -303,7 +303,7 @@
 			</div>
 			<nav>
 				<a href="{{ url_for('it_dashboard') }}">Dashboard</a>
-				<a href="{{ url_for('it_users_add') }}" {% if mode="" ="add" %}class="active" {% endif %}>Thêm User</a>
+				<a href="{{ url_for('it_users_add') }}" {% if mode == 'add' %}class="active"{% endif %}>Thêm User</a>
 				<a href="{{ url_for('it_requests') }}">Yêu cầu</a>
 			</nav>
 			<div class="sidebar-bottom">

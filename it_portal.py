@@ -264,7 +264,8 @@ def it_user_detail(uid):
     sync_needed = (
         txt_info.get("group") != user.get("group") or
         txt_info.get("cn") != user.get("cn") or
-        txt_info.get("email") != user.get("email")
+        txt_info.get("email") != user.get("email") or
+        user.get("vlan") != CONFIG["VLAN_MAP"].get(user.get("group", ""), 10)
     )
 
     device_rows = []

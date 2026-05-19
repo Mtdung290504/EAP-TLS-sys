@@ -469,8 +469,7 @@ def it_approve_request(req_id):
     data["requests"][req_id]["token_expires"] = token_expires.strftime("%Y-%m-%d %H:%M:%S")
     db.save_db(data)
 
-    download_url = url_for("download_cert", token=token, _external=True)
-    flash(f"Đã duyệt. Link tải cert (hiệu lực {CONFIG['DOWNLOAD_LINK_EXPIRE_MINUTES']} phút): {download_url}", "success")
+    flash(f"Đã duyệt. Nhân viên có thể tải cert và mật khẩu trên Employee Portal (hiệu lực {CONFIG['DOWNLOAD_LINK_EXPIRE_MINUTES']} phút).", "success")
     return redirect(url_for("it_requests"))
 
 

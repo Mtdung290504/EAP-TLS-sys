@@ -143,15 +143,29 @@ def employee_dashboard():
         })
 
     # Requests của user này
-    my_requests = [
-        {
+    now = datetime.now()
+    my_requests = []
+    for req in all_requests.values():
+        if req.get("uid") != uid:
+            continue
+        download_url = None
+        token = req.get("download_token")
+        token_expires_str = req.get("token_expires")
+        if token and token_expires_str:
+            try:
+                token_expires = datetime.strptime(token_expires_str, "%Y-%m-%d %H:%M:%S")
+                if now < token_expires:
+                    download_url = url_for("download_cert", token=token, _external=True)
+            except ValueError:
+                pass
+        password_url = url_for("get_password", token=token, _external=True) if download_url else None
+        my_requests.append({
             "device_name": req.get("device_name", ""),
             "status": req.get("status", ""),
             "requested_at": req.get("requested_at", ""),
-        }
-        for req in all_requests.values()
-        if req.get("uid") == uid
-    ]
+            "download_url": download_url,
+            "password_url": password_url,
+        })
 
     active_count = sum(1 for d in devices.values() if d.get("status") == "active")
     max_devices = user.get("max_devices", 2)
@@ -223,6 +237,70 @@ def employee_request():
         return redirect(url_for("employee_dashboard"))
 
     return render_template("request.html", user=user, uid=uid)
+
+
+# ── Download cert (employee side) ────────────────────────────────────────────
+
+def _find_request_by_token(token: str):
+    """Tìm request theo download_token, kiểm tra còn hạn. Trả về (req_id, req) hoặc (None, None)."""
+    data = db.load_db()
+    for req_id, req in data.get("requests", {}).items():
+        if req.get("download_token") == token:
+            token_expires_str = req.get("token_expires")
+            if token_expires_str:
+                try:
+                    if datetime.now() > datetime.strptime(token_expires_str, "%Y-%m-%d %H:%M:%S"):
+                        abort(410)  # Expired
+                except ValueError:
+                    abort(500)
+            return req_id, req
+    abort(404)
+
+
+@app.route("/download/<token>")
+def download_cert(token):
+    from flask import send_file
+    req_id, req = _find_request_by_token(token)
+
+    uid = req["uid"]
+    device_name = req["device_name"]
+    p12_path = os.path.join(CONFIG["CLIENTS_DIR"], uid, device_name, "client.p12")
+
+    if not os.path.exists(p12_path):
+        abort(404)
+
+    # Xóa token sau khi tải (one-time)
+    data = db.load_db()
+    if req_id in data["requests"]:
+        data["requests"][req_id]["download_token"] = None
+        data["requests"][req_id]["token_expires"] = None
+    db.save_db(data)
+
+    return send_file(
+        p12_path,
+        as_attachment=True,
+        download_name=f"{uid}_{device_name}.p12",
+        mimetype="application/x-pkcs12",
+    )
+
+
+@app.route("/password/<token>")
+def get_password(token):
+    """Trả về mật khẩu .p12 dạng plain text. Không tiêu thụ token."""
+    from flask import Response
+    _req_id, req = _find_request_by_token(token)
+
+    uid = req["uid"]
+    device_name = req["device_name"]
+    pass_path = os.path.join(CONFIG["CLIENTS_DIR"], uid, device_name, "password.txt")
+
+    if not os.path.exists(pass_path):
+        abort(404)
+
+    with open(pass_path, "r", encoding="utf-8") as f:
+        password = f.read().strip()
+
+    return Response(password, mimetype="text/plain")
 
 
 # ── Root redirect ─────────────────────────────────────────────────────────────

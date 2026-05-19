@@ -1,162 +1,364 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Portal — Dashboard</title>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            font-size: 14px; background: #f5f5f5; color: #111; min-height: 100vh;
-        }
-        header {
-            background: #fff; border-bottom: 1px solid #ddd;
-            padding: 12px 32px; display: flex; align-items: center; justify-content: space-between;
-        }
-        header strong { font-size: 15px; }
-        header .user-info { font-size: 13px; color: #555; display: flex; align-items: center; gap: 14px; }
-        header .user-info a { color: #555; text-decoration: none; }
-        header .user-info a:hover { color: #111; }
-        .container { max-width: 860px; margin: 0 auto; padding: 28px 16px; }
-        .flash-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 8px 12px; border-radius: 3px; margin-bottom: 16px; font-size: 13px; }
-        .flash-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; padding: 8px 12px; border-radius: 3px; margin-bottom: 16px; font-size: 13px; }
-        h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
-        .welcome { color: #666; font-size: 13px; margin-bottom: 20px; }
-        /* Info cards */
-        .profile-card {
-            background: #fff; border: 1px solid #ddd; border-radius: 4px;
-            padding: 16px 20px; margin-bottom: 20px;
-        }
-        .profile-card dl { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; }
-        .profile-card dt { font-size: 12px; color: #666; font-weight: 500; align-self: center; }
-        .profile-card dd { font-size: 14px; }
-        .slot-info {
-            margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;
-            font-size: 13px; color: #555;
-        }
-        .slot-info strong { color: #111; }
-        /* Section */
-        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 24px; }
-        .section-header h2 { font-size: 15px; font-weight: 600; }
-        .btn-sm {
-            padding: 5px 14px; background: #111; color: #fff; border: none;
-            border-radius: 3px; font-size: 13px; cursor: pointer; text-decoration: none;
-            display: inline-block;
-        }
-        .btn-sm:hover { background: #333; }
-        .btn-sm:disabled, .btn-sm.disabled { background: #ccc; cursor: not-allowed; pointer-events: none; }
-        table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
-        thead th { background: #f0f0f0; padding: 9px 12px; text-align: left; font-size: 13px; font-weight: 600; border-bottom: 1px solid #ddd; }
-        tbody td { padding: 9px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-        tbody tr:last-child td { border-bottom: none; }
-        tbody tr:hover { background: #fafafa; }
-        .empty { text-align: center; color: #888; padding: 24px; font-size: 13px; }
-        .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-        .badge-active { background: #dcfce7; color: #166534; }
-        .badge-revoked { background: #fee2e2; color: #991b1b; }
-        .badge-pending { background: #fef9c3; color: #854d0e; }
-        .badge-approved { background: #dcfce7; color: #166534; }
-        .badge-rejected { background: #fee2e2; color: #991b1b; }
-    </style>
-</head>
-<body>
-    <header>
-        <strong>Employee Portal — EAP-TLS</strong>
-        <div class="user-info">
-            <span>{{ user.cn }} ({{ uid }})</span>
-            <a href="{{ url_for('auth_logout') }}">Đăng xuất</a>
-        </div>
-    </header>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Employee Portal — Dashboard</title>
+		<style>
+			*,
+			*::before,
+			*::after {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+				font-size: 14px;
+				background: #f5f5f5;
+				color: #111;
+				min-height: 100vh;
+			}
+			header {
+				background: #fff;
+				border-bottom: 1px solid #ddd;
+				padding: 12px 32px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+			header strong {
+				font-size: 15px;
+			}
+			header .user-info {
+				font-size: 13px;
+				color: #555;
+				display: flex;
+				align-items: center;
+				gap: 14px;
+			}
+			header .user-info a {
+				color: #555;
+				text-decoration: none;
+			}
+			header .user-info a:hover {
+				color: #111;
+			}
+			.container {
+				max-width: 860px;
+				margin: 0 auto;
+				padding: 28px 16px;
+			}
+			.flash-success {
+				background: #f0fdf4;
+				border: 1px solid #86efac;
+				color: #166534;
+				padding: 8px 12px;
+				border-radius: 3px;
+				margin-bottom: 16px;
+				font-size: 13px;
+			}
+			.flash-error {
+				background: #fef2f2;
+				border: 1px solid #fca5a5;
+				color: #b91c1c;
+				padding: 8px 12px;
+				border-radius: 3px;
+				margin-bottom: 16px;
+				font-size: 13px;
+			}
+			h1 {
+				font-size: 20px;
+				font-weight: 600;
+				margin-bottom: 6px;
+			}
+			.welcome {
+				color: #666;
+				font-size: 13px;
+				margin-bottom: 20px;
+			}
+			/* Info cards */
+			.profile-card {
+				background: #fff;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				padding: 16px 20px;
+				margin-bottom: 20px;
+			}
+			.profile-card dl {
+				display: grid;
+				grid-template-columns: 120px 1fr;
+				gap: 6px 12px;
+			}
+			.profile-card dt {
+				font-size: 12px;
+				color: #666;
+				font-weight: 500;
+				align-self: center;
+			}
+			.profile-card dd {
+				font-size: 14px;
+			}
+			.slot-info {
+				margin-top: 12px;
+				padding-top: 12px;
+				border-top: 1px solid #eee;
+				font-size: 13px;
+				color: #555;
+			}
+			.slot-info strong {
+				color: #111;
+			}
+			/* Section */
+			.section-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 10px;
+				margin-top: 24px;
+			}
+			.section-header h2 {
+				font-size: 15px;
+				font-weight: 600;
+			}
+			.btn-sm {
+				padding: 5px 14px;
+				background: #111;
+				color: #fff;
+				border: none;
+				border-radius: 3px;
+				font-size: 13px;
+				cursor: pointer;
+				text-decoration: none;
+				display: inline-block;
+			}
+			.btn-sm:hover {
+				background: #333;
+			}
+			.btn-sm:disabled,
+			.btn-sm.disabled {
+				background: #ccc;
+				cursor: not-allowed;
+				pointer-events: none;
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				background: #fff;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				overflow: hidden;
+			}
+			thead th {
+				background: #f0f0f0;
+				padding: 9px 12px;
+				text-align: left;
+				font-size: 13px;
+				font-weight: 600;
+				border-bottom: 1px solid #ddd;
+			}
+			tbody td {
+				padding: 9px 12px;
+				border-bottom: 1px solid #eee;
+				font-size: 13px;
+			}
+			tbody tr:last-child td {
+				border-bottom: none;
+			}
+			tbody tr:hover {
+				background: #fafafa;
+			}
+			.empty {
+				text-align: center;
+				color: #888;
+				padding: 24px;
+				font-size: 13px;
+			}
+			.badge {
+				display: inline-block;
+				padding: 2px 7px;
+				border-radius: 10px;
+				font-size: 11px;
+				font-weight: 600;
+			}
+			.badge-active {
+				background: #dcfce7;
+				color: #166534;
+			}
+			.badge-revoked {
+				background: #fee2e2;
+				color: #991b1b;
+			}
+			.badge-pending {
+				background: #fef9c3;
+				color: #854d0e;
+			}
+			.badge-approved {
+				background: #dcfce7;
+				color: #166534;
+			}
+			.badge-rejected {
+				background: #fee2e2;
+				color: #991b1b;
+			}
+		</style>
+	</head>
+	<body>
+		<header>
+			<strong>Employee Portal — EAP-TLS</strong>
+			<div class="user-info">
+				<span>{{ user.cn }} ({{ uid }})</span>
+				<a href="{{ url_for('auth_logout') }}">Đăng xuất</a>
+			</div>
+		</header>
 
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for cat, msg in messages %}
-        <div class="flash-{{ cat }}">{{ msg }}</div>
-        {% endfor %}
-        {% endwith %}
+		<div class="container">
+			{% with messages = get_flashed_messages(with_categories=true) %} {% for cat, msg in messages %}
+			<div class="flash-{{ cat }}">{{ msg }}</div>
+			{% endfor %} {% endwith %}
 
-        <h1>Xin chào, {{ user.cn }}</h1>
-        <p class="welcome">Đây là trang quản lý chứng chỉ EAP-TLS của bạn.</p>
+			<h1>Xin chào, {{ user.cn }}</h1>
+			<p class="welcome">Đây là trang quản lý chứng chỉ EAP-TLS của bạn.</p>
 
-        <div class="profile-card">
-            <dl>
-                <dt>UID</dt><dd>{{ uid }}</dd>
-                <dt>Email</dt><dd>{{ user.email }}</dd>
-                <dt>Nhóm</dt><dd>{{ user.group }}</dd>
-                <dt>VLAN</dt><dd>{{ user.vlan }}</dd>
-            </dl>
-            <div class="slot-info">
-                Bạn có thể đăng ký tối đa <strong>{{ max_devices }}</strong> thiết bị.
-                Hiện đang active: <strong>{{ active_count }}</strong>.
-                Còn trống: <strong>{{ slots_left }}</strong>.
-            </div>
-        </div>
+			<div class="profile-card">
+				<dl>
+					<dt>UID</dt>
+					<dd>{{ uid }}</dd>
+					<dt>Email</dt>
+					<dd>{{ user.email }}</dd>
+					<dt>Nhóm</dt>
+					<dd>{{ user.group }}</dd>
+					<dt>VLAN</dt>
+					<dd>{{ user.vlan }}</dd>
+				</dl>
+				<div class="slot-info">
+					Bạn có thể đăng ký tối đa <strong>{{ max_devices }}</strong> thiết bị. Hiện đang active:
+					<strong>{{ active_count }}</strong>. Còn trống: <strong>{{ slots_left }}</strong>.
+				</div>
+			</div>
 
-        <!-- Devices -->
-        <div class="section-header">
-            <h2>Thiết bị của tôi</h2>
-            <a href="{{ url_for('employee_request') }}" class="btn-sm {% if slots_left == 0 %}disabled{% endif %}">
-                + Yêu cầu thiết bị mới
-            </a>
-        </div>
-        <table id="device-table">
-            <thead>
-                <tr>
-                    <th>Tên thiết bị</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày cấp</th>
-                    <th>Hết hạn</th>
-                    <th>Còn lại</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if device_rows %}
-                {% for dev in device_rows %}
-                <tr>
-                    <td>{{ dev.name }}</td>
-                    <td><span class="badge badge-{{ dev.status }}">{{ dev.status }}</span></td>
-                    <td>{{ dev.issued or '—' }}</td>
-                    <td>{{ dev.expires or '—' }}</td>
-                    <td>
-                        {% if dev.days_left is not none and dev.status == 'active' %}
-                            {{ dev.days_left }} ngày
-                        {% else %}—{% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-                {% else %}
-                <tr><td colspan="5" class="empty">Chưa có thiết bị nào được cấp cert.</td></tr>
-                {% endif %}
-            </tbody>
-        </table>
+			<!-- Devices -->
+			<div class="section-header">
+				<h2>Thiết bị của tôi</h2>
+				<a href="{{ url_for('employee_request') }}" class="btn-sm {% if slots_left == 0 %}disabled{% endif %}">
+					+ Yêu cầu thiết bị mới
+				</a>
+			</div>
+			<table id="device-table">
+				<thead>
+					<tr>
+						<th>Tên thiết bị</th>
+						<th>Trạng thái</th>
+						<th>Ngày cấp</th>
+						<th>Hết hạn</th>
+						<th>Còn lại</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% if device_rows %} {% for dev in device_rows %}
+					<tr>
+						<td>{{ dev.name }}</td>
+						<td><span class="badge badge-{{ dev.status }}">{{ dev.status }}</span></td>
+						<td>{{ dev.issued or '—' }}</td>
+						<td>{{ dev.expires or '—' }}</td>
+						<td>
+							{% if dev.days_left is not none and dev.status == 'active' %} {{ dev.days_left }} ngày {%
+							else %}—{% endif %}
+						</td>
+					</tr>
+					{% endfor %} {% else %}
+					<tr>
+						<td colspan="5" class="empty">Chưa có thiết bị nào được cấp cert.</td>
+					</tr>
+					{% endif %}
+				</tbody>
+			</table>
 
-        <!-- Requests -->
-        <div class="section-header" style="margin-top:28px;">
-            <h2>Yêu cầu đã gửi</h2>
-        </div>
-        <table id="requests-table">
-            <thead>
-                <tr>
-                    <th>Tên thiết bị</th>
-                    <th>Trạng thái</th>
-                    <th>Thời gian yêu cầu</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if my_requests %}
-                {% for r in my_requests %}
-                <tr>
-                    <td>{{ r.device_name }}</td>
-                    <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
-                    <td>{{ r.requested_at }}</td>
-                </tr>
-                {% endfor %}
-                {% else %}
-                <tr><td colspan="3" class="empty">Chưa có yêu cầu nào.</td></tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-</body>
+			<!-- Requests -->
+			<div class="section-header" style="margin-top: 28px">
+				<h2>Yêu cầu đã gửi</h2>
+			</div>
+			<table id="requests-table">
+				<thead>
+					<tr>
+						<th>Tên thiết bị</th>
+						<th>Trạng thái</th>
+						<th>Thời gian yêu cầu</th>
+						<th>Tải cert</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% if my_requests %} {% for r in my_requests %}
+					<tr>
+						<td>{{ r.device_name }}</td>
+						<td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+						<td>{{ r.requested_at }}</td>
+						<td>
+							{% if r.download_url %}
+							<div style="display: flex; gap: 4px; align-items: center">
+								<a
+									href="{{ r.download_url }}"
+									class="btn-sm"
+									style="
+										font-size: 12px;
+										padding: 4px 10px;
+										background: #166534;
+										text-decoration: none;
+									"
+								>
+									⬇ Tải .p12
+								</a>
+								<button
+									type="button"
+									class="btn-sm"
+									style="
+										font-size: 12px;
+										padding: 4px 10px;
+										background: #4f46e5;
+										border: none;
+										color: white;
+									"
+									onclick="fetchPassword(this, '{{ r.password_url }}')"
+								>
+									🔑 Lấy mật khẩu
+								</button>
+							</div>
+							{% else %}—{% endif %}
+						</td>
+					</tr>
+					{% endfor %} {% else %}
+					<tr>
+						<td colspan="4" class="empty">Chưa có yêu cầu nào.</td>
+					</tr>
+					{% endif %}
+				</tbody>
+			</table>
+		</div>
+
+		<script>
+			async function fetchPassword(btn, url) {
+				btn.disabled = true;
+				btn.textContent = '⏳ Đang lấy...';
+				try {
+					const res = await fetch(url);
+					if (!res.ok) throw new Error('Link hết hạn hoặc lỗi');
+					const pwd = await res.text();
+
+					const wrapper = document.createElement('div');
+					wrapper.style.display = 'inline-flex';
+					wrapper.style.alignItems = 'center';
+					wrapper.style.gap = '4px';
+					wrapper.innerHTML = `
+                    <code style="background:#eee;padding:4px 8px;border-radius:3px;border:1px solid #ddd;font-family:monospace;font-size:12px;">${pwd}</code>
+                    <button class="btn-sm" style="font-size:11px;padding:3px 8px;background:#666;border:none;color:white;" onclick="navigator.clipboard.writeText('${pwd}'); this.textContent='Đã copy'">Copy</button>
+                `;
+					btn.parentNode.replaceChild(wrapper, btn);
+				} catch (e) {
+					btn.textContent = '❌ Lỗi';
+					btn.disabled = false;
+					alert(e.message);
+				}
+			}
+		</script>
+	</body>
 </html>

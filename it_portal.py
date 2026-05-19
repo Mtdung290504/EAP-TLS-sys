@@ -492,56 +492,6 @@ def it_reject_request(req_id):
     return redirect(url_for("it_requests"))
 
 
-# ── Download cert ─────────────────────────────────────────────────────────────
-
-@app.route("/download/<token>")
-def download_cert(token):
-    data = db.load_db()
-    requests_all = data.get("requests", {})
-
-    matched_req_id = None
-    matched_req = None
-    for req_id, req in requests_all.items():
-        if req.get("download_token") == token:
-            matched_req_id = req_id
-            matched_req = req
-            break
-
-    if matched_req is None:
-        abort(404)
-
-    # Kiểm tra hết hạn
-    token_expires_str = matched_req.get("token_expires")
-    if token_expires_str:
-        try:
-            token_expires = datetime.strptime(token_expires_str, "%Y-%m-%d %H:%M:%S")
-            if datetime.now() > token_expires:
-                abort(410)  # Gone
-        except ValueError:
-            abort(500)
-
-    uid = matched_req["uid"]
-    device_name = matched_req["device_name"]
-    p12_path = os.path.join(CONFIG["CLIENTS_DIR"], uid, device_name, "client.p12")
-
-    if not os.path.exists(p12_path):
-        abort(404)
-
-    # Xóa token sau khi dùng (one-time)
-    data = db.load_db()
-    if matched_req_id in data["requests"]:
-        data["requests"][matched_req_id]["download_token"] = None
-        data["requests"][matched_req_id]["token_expires"] = None
-    db.save_db(data)
-
-    return send_file(
-        p12_path,
-        as_attachment=True,
-        download_name=f"{uid}_{device_name}.p12",
-        mimetype="application/x-pkcs12",
-    )
-
-
 # ── Root redirect ─────────────────────────────────────────────────────────────
 
 @app.route("/")

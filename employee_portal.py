@@ -315,13 +315,6 @@ def download_cert(token):
     if not os.path.exists(p12_path):
         abort(404)
 
-    # Xóa token sau khi tải (one-time)
-    data = db.load_db()
-    if uid in data["devices"] and device_name in data["devices"][uid]:
-        data["devices"][uid][device_name]["download_token"] = None
-        data["devices"][uid][device_name]["token_expires"] = None
-    db.save_db(data)
-
     return send_file(
         p12_path,
         as_attachment=True,

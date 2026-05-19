@@ -6,8 +6,16 @@
 import os
 from datetime import datetime
 
-from flask import (Flask, render_template, request, redirect,
-                   url_for, session, flash, abort)
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    session,
+    flash,
+    abort,
+)
 from authlib.integrations.flask_client import OAuth
 
 from config import CONFIG
@@ -29,6 +37,7 @@ google = oauth.register(
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def parse_users_txt() -> dict:
     """Đọc users.txt, trả về dict email → uid."""
@@ -60,20 +69,30 @@ def days_until(expires_str: str):
 
 def login_required_employee(f):
     from functools import wraps
+
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get("employee_uid"):
             return redirect(url_for("auth_login"))
         return f(*args, **kwargs)
+
     return decorated
 
 
 # ── Auth routes ───────────────────────────────────────────────────────────────
 
+
 @app.route("/auth/login")
 def auth_login():
+    return render_template("login.html")
+
+
+@app.route("/auth/google")
+def auth_google():
     redirect_uri = CONFIG["GOOGLE_REDIRECT_URI"]
-    return google.authorize_redirect(redirect_uri)
+    # Thêm prompt='select_account' để Google luôn hỏi chọn tài khoản,
+    # giúp nhân viên có thể đổi tài khoản khác sau khi đăng xuất.
+    return google.authorize_redirect(redirect_uri, prompt="select_account")
 
 
 @app.route("/auth/callback")
@@ -117,6 +136,7 @@ def auth_logout():
 
 # ── Employee Dashboard ────────────────────────────────────────────────────────
 
+
 @app.route("/employee/dashboard")
 @login_required_employee
 def employee_dashboard():
@@ -134,13 +154,15 @@ def employee_dashboard():
         days_left = None
         if dev.get("expires"):
             days_left = days_until(dev["expires"])
-        device_rows.append({
-            "name": dev_name,
-            "status": dev.get("status", ""),
-            "issued": dev.get("issued", ""),
-            "expires": dev.get("expires", ""),
-            "days_left": days_left,
-        })
+        device_rows.append(
+            {
+                "name": dev_name,
+                "status": dev.get("status", ""),
+                "issued": dev.get("issued", ""),
+                "expires": dev.get("expires", ""),
+                "days_left": days_left,
+            }
+        )
 
     # Requests của user này
     now = datetime.now()
@@ -153,19 +175,27 @@ def employee_dashboard():
         token_expires_str = req.get("token_expires")
         if token and token_expires_str:
             try:
-                token_expires = datetime.strptime(token_expires_str, "%Y-%m-%d %H:%M:%S")
+                token_expires = datetime.strptime(
+                    token_expires_str, "%Y-%m-%d %H:%M:%S"
+                )
                 if now < token_expires:
                     download_url = url_for("download_cert", token=token, _external=True)
             except ValueError:
                 pass
-        password_url = url_for("get_password", token=token, _external=True) if download_url else None
-        my_requests.append({
-            "device_name": req.get("device_name", ""),
-            "status": req.get("status", ""),
-            "requested_at": req.get("requested_at", ""),
-            "download_url": download_url,
-            "password_url": password_url,
-        })
+        password_url = (
+            url_for("get_password", token=token, _external=True)
+            if download_url
+            else None
+        )
+        my_requests.append(
+            {
+                "device_name": req.get("device_name", ""),
+                "status": req.get("status", ""),
+                "requested_at": req.get("requested_at", ""),
+                "download_url": download_url,
+                "password_url": password_url,
+            }
+        )
 
     active_count = sum(1 for d in devices.values() if d.get("status") == "active")
     max_devices = user.get("max_devices", 2)
@@ -184,6 +214,7 @@ def employee_dashboard():
 
 
 # ── Employee Request ──────────────────────────────────────────────────────────
+
 
 @app.route("/employee/request", methods=["GET", "POST"])
 @login_required_employee
@@ -217,11 +248,19 @@ def employee_request():
 
         # Kiểm tra đã có pending request cho device_name này chưa
         for req in data["requests"].values():
-            if req.get("uid") == uid and req.get("device_name") == device_name and req.get("status") == "pending":
-                flash(f"Đã có yêu cầu đang chờ duyệt cho thiết bị '{device_name}'.", "error")
+            if (
+                req.get("uid") == uid
+                and req.get("device_name") == device_name
+                and req.get("status") == "pending"
+            ):
+                flash(
+                    f"Đã có yêu cầu đang chờ duyệt cho thiết bị '{device_name}'.",
+                    "error",
+                )
                 return redirect(url_for("employee_dashboard"))
 
         import uuid
+
         req_id = f"req_{uuid.uuid4().hex[:8]}"
         data["requests"][req_id] = {
             "uid": uid,
@@ -241,6 +280,7 @@ def employee_request():
 
 # ── Download cert (employee side) ────────────────────────────────────────────
 
+
 def _find_request_by_token(token: str):
     """Tìm request theo download_token, kiểm tra còn hạn. Trả về (req_id, req) hoặc (None, None)."""
     data = db.load_db()
@@ -249,7 +289,9 @@ def _find_request_by_token(token: str):
             token_expires_str = req.get("token_expires")
             if token_expires_str:
                 try:
-                    if datetime.now() > datetime.strptime(token_expires_str, "%Y-%m-%d %H:%M:%S"):
+                    if datetime.now() > datetime.strptime(
+                        token_expires_str, "%Y-%m-%d %H:%M:%S"
+                    ):
                         abort(410)  # Expired
                 except ValueError:
                     abort(500)
@@ -260,6 +302,7 @@ def _find_request_by_token(token: str):
 @app.route("/download/<token>")
 def download_cert(token):
     from flask import send_file
+
     req_id, req = _find_request_by_token(token)
 
     uid = req["uid"]
@@ -288,6 +331,7 @@ def download_cert(token):
 def get_password(token):
     """Trả về mật khẩu .p12 dạng plain text. Không tiêu thụ token."""
     from flask import Response
+
     _req_id, req = _find_request_by_token(token)
 
     uid = req["uid"]
@@ -305,14 +349,11 @@ def get_password(token):
 
 # ── Root redirect ─────────────────────────────────────────────────────────────
 
+
 @app.route("/")
 def root():
     return redirect(url_for("employee_dashboard"))
 
 
 if __name__ == "__main__":
-    app.run(
-        host=CONFIG["HOST"],
-        port=CONFIG["EMPLOYEE_PORTAL_PORT"],
-        debug=False
-    )
+    app.run(host=CONFIG["HOST"], port=CONFIG["EMPLOYEE_PORTAL_PORT"], debug=False)

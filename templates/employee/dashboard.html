@@ -252,6 +252,7 @@
 						<th>Ngày cấp</th>
 						<th>Hết hạn</th>
 						<th>Còn lại</th>
+						<th>Tải cert</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -265,39 +266,11 @@
 							{% if dev.days_left is not none and dev.status == 'active' %} {{ dev.days_left }} ngày {%
 							else %}—{% endif %}
 						</td>
-					</tr>
-					{% endfor %} {% else %}
-					<tr>
-						<td colspan="5" class="empty">Chưa có thiết bị nào được cấp cert.</td>
-					</tr>
-					{% endif %}
-				</tbody>
-			</table>
-
-			<!-- Requests -->
-			<div class="section-header" style="margin-top: 28px">
-				<h2>Yêu cầu đã gửi</h2>
-			</div>
-			<table id="requests-table">
-				<thead>
-					<tr>
-						<th>Tên thiết bị</th>
-						<th>Trạng thái</th>
-						<th>Thời gian yêu cầu</th>
-						<th>Tải cert</th>
-					</tr>
-				</thead>
-				<tbody>
-					{% if my_requests %} {% for r in my_requests %}
-					<tr>
-						<td>{{ r.device_name }}</td>
-						<td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
-						<td>{{ r.requested_at }}</td>
 						<td>
-							{% if r.download_url %}
+							{% if dev.download_url %}
 							<div style="display: flex; gap: 4px; align-items: center">
 								<a
-									href="{{ r.download_url }}"
+									href="{{ dev.download_url }}"
 									class="btn-sm"
 									style="
 										font-size: 12px;
@@ -318,9 +291,9 @@
 										border: none;
 										color: white;
 									"
-									onclick="fetchPassword(this, '{{ r.password_url }}')"
+									onclick="fetchPassword(this, '{{ dev.password_url }}')"
 								>
-									🔑 Lấy mật khẩu
+									Lấy mật khẩu
 								</button>
 							</div>
 							{% else %}—{% endif %}
@@ -328,7 +301,34 @@
 					</tr>
 					{% endfor %} {% else %}
 					<tr>
-						<td colspan="4" class="empty">Chưa có yêu cầu nào.</td>
+						<td colspan="6" class="empty">Chưa có thiết bị nào được cấp cert.</td>
+					</tr>
+					{% endif %}
+				</tbody>
+			</table>
+
+			<!-- Requests -->
+			<div class="section-header" style="margin-top: 28px">
+				<h2>Yêu cầu đã gửi</h2>
+			</div>
+			<table id="requests-table">
+				<thead>
+					<tr>
+						<th>Tên thiết bị</th>
+						<th>Trạng thái</th>
+						<th>Thời gian yêu cầu</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% if my_requests %} {% for r in my_requests %}
+					<tr>
+						<td>{{ r.device_name }}</td>
+						<td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+						<td>{{ r.requested_at }}</td>
+					</tr>
+					{% endfor %} {% else %}
+					<tr>
+						<td colspan="3" class="empty">Chưa có yêu cầu nào.</td>
 					</tr>
 					{% endif %}
 				</tbody>
@@ -338,7 +338,7 @@
 		<script>
 			async function fetchPassword(btn, url) {
 				btn.disabled = true;
-				btn.textContent = '⏳ Đang lấy...';
+				btn.textContent = 'Đang lấy...';
 				try {
 					const res = await fetch(url);
 					if (!res.ok) throw new Error('Link hết hạn hoặc lỗi');
@@ -354,7 +354,7 @@
                 `;
 					btn.parentNode.replaceChild(wrapper, btn);
 				} catch (e) {
-					btn.textContent = '❌ Lỗi';
+					btn.textContent = 'Lỗi';
 					btn.disabled = false;
 					alert(e.message);
 				}

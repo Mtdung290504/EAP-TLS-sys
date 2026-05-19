@@ -149,30 +149,18 @@ def employee_dashboard():
     devices = db.get_devices(uid)
     all_requests = db.get_requests()
 
+    # Thiết bị
+    now = datetime.now()
     device_rows = []
     for dev_name, dev in devices.items():
         days_left = None
         if dev.get("expires"):
             days_left = days_until(dev["expires"])
-        device_rows.append(
-            {
-                "name": dev_name,
-                "status": dev.get("status", ""),
-                "issued": dev.get("issued", ""),
-                "expires": dev.get("expires", ""),
-                "days_left": days_left,
-            }
-        )
 
-    # Requests của user này
-    now = datetime.now()
-    my_requests = []
-    for req in all_requests.values():
-        if req.get("uid") != uid:
-            continue
         download_url = None
-        token = req.get("download_token")
-        token_expires_str = req.get("token_expires")
+        password_url = None
+        token = dev.get("download_token")
+        token_expires_str = dev.get("token_expires")
         if token and token_expires_str:
             try:
                 token_expires = datetime.strptime(
@@ -187,13 +175,29 @@ def employee_dashboard():
             if download_url
             else None
         )
+
+        device_rows.append(
+            {
+                "name": dev_name,
+                "status": dev.get("status", ""),
+                "issued": dev.get("issued", ""),
+                "expires": dev.get("expires", ""),
+                "days_left": days_left,
+                "download_url": download_url,
+                "password_url": password_url,
+            }
+        )
+
+    # Requests của user này
+    my_requests = []
+    for req in all_requests.values():
+        if req.get("uid") != uid:
+            continue
         my_requests.append(
             {
                 "device_name": req.get("device_name", ""),
                 "status": req.get("status", ""),
                 "requested_at": req.get("requested_at", ""),
-                "download_url": download_url,
-                "password_url": password_url,
             }
         )
 
@@ -281,21 +285,22 @@ def employee_request():
 # ── Download cert (employee side) ────────────────────────────────────────────
 
 
-def _find_request_by_token(token: str):
-    """Tìm request theo download_token, kiểm tra còn hạn. Trả về (req_id, req) hoặc (None, None)."""
+def _find_device_by_token(token: str):
+    """Tìm thiết bị theo download_token, kiểm tra còn hạn. Trả về (uid, device_name, dev) hoặc abort."""
     data = db.load_db()
-    for req_id, req in data.get("requests", {}).items():
-        if req.get("download_token") == token:
-            token_expires_str = req.get("token_expires")
-            if token_expires_str:
-                try:
-                    if datetime.now() > datetime.strptime(
-                        token_expires_str, "%Y-%m-%d %H:%M:%S"
-                    ):
-                        abort(410)  # Expired
-                except ValueError:
-                    abort(500)
-            return req_id, req
+    for uid, uid_devices in data.get("devices", {}).items():
+        for dev_name, dev in uid_devices.items():
+            if dev.get("download_token") == token:
+                token_expires_str = dev.get("token_expires")
+                if token_expires_str:
+                    try:
+                        if datetime.now() > datetime.strptime(
+                            token_expires_str, "%Y-%m-%d %H:%M:%S"
+                        ):
+                            abort(410)  # Expired
+                    except ValueError:
+                        abort(500)
+                return uid, dev_name, dev
     abort(404)
 
 
@@ -303,10 +308,8 @@ def _find_request_by_token(token: str):
 def download_cert(token):
     from flask import send_file
 
-    req_id, req = _find_request_by_token(token)
+    uid, device_name, dev = _find_device_by_token(token)
 
-    uid = req["uid"]
-    device_name = req["device_name"]
     p12_path = os.path.join(CONFIG["CLIENTS_DIR"], uid, device_name, "client.p12")
 
     if not os.path.exists(p12_path):
@@ -314,9 +317,9 @@ def download_cert(token):
 
     # Xóa token sau khi tải (one-time)
     data = db.load_db()
-    if req_id in data["requests"]:
-        data["requests"][req_id]["download_token"] = None
-        data["requests"][req_id]["token_expires"] = None
+    if uid in data["devices"] and device_name in data["devices"][uid]:
+        data["devices"][uid][device_name]["download_token"] = None
+        data["devices"][uid][device_name]["token_expires"] = None
     db.save_db(data)
 
     return send_file(
@@ -332,10 +335,8 @@ def get_password(token):
     """Trả về mật khẩu .p12 dạng plain text. Không tiêu thụ token."""
     from flask import Response
 
-    _req_id, req = _find_request_by_token(token)
+    uid, device_name, dev = _find_device_by_token(token)
 
-    uid = req["uid"]
-    device_name = req["device_name"]
     pass_path = os.path.join(CONFIG["CLIENTS_DIR"], uid, device_name, "password.txt")
 
     if not os.path.exists(pass_path):

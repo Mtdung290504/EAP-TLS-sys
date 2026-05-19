@@ -308,6 +308,10 @@ def it_add_device(uid):
     now = datetime.now()
     expires = now + timedelta(days=CONFIG["CERT_VALIDITY_DAYS"])
 
+    import uuid
+    token = str(uuid.uuid4())
+    token_expires = now + timedelta(minutes=CONFIG["DOWNLOAD_LINK_EXPIRE_MINUTES"])
+
     data = db.load_db()
     if uid not in data["devices"]:
         data["devices"][uid] = {}
@@ -316,10 +320,12 @@ def it_add_device(uid):
         "serial": serial,
         "issued": now.strftime("%Y-%m-%d %H:%M:%S"),
         "expires": expires.strftime("%Y-%m-%d %H:%M:%S"),
+        "download_token": token,
+        "token_expires": token_expires.strftime("%Y-%m-%d %H:%M:%S"),
     }
     db.save_db(data)
 
-    flash(f"Đã cấp cert cho thiết bị '{device_name}' (Serial: {serial}).", "success")
+    flash(f"Đã cấp cert cho thiết bị '{device_name}'. Nhân viên có thể tải về trên portal (hiệu lực {CONFIG['DOWNLOAD_LINK_EXPIRE_MINUTES']} phút).", "success")
     return redirect(url_for("it_user_detail", uid=uid))
 
 
@@ -463,10 +469,10 @@ def it_approve_request(req_id):
         "serial": serial,
         "issued": now.strftime("%Y-%m-%d %H:%M:%S"),
         "expires": expires.strftime("%Y-%m-%d %H:%M:%S"),
+        "download_token": token,
+        "token_expires": token_expires.strftime("%Y-%m-%d %H:%M:%S"),
     }
     data["requests"][req_id]["status"] = "approved"
-    data["requests"][req_id]["download_token"] = token
-    data["requests"][req_id]["token_expires"] = token_expires.strftime("%Y-%m-%d %H:%M:%S")
     db.save_db(data)
 
     flash(f"Đã duyệt. Nhân viên có thể tải cert và mật khẩu trên Employee Portal (hiệu lực {CONFIG['DOWNLOAD_LINK_EXPIRE_MINUTES']} phút).", "success")
